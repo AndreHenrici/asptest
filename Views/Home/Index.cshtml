@@ -1,8 +1,78 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcomse git master</h1>
+    <h1 class="display-4">Welcome</h1>
+    <h2>Hello World!!</h2>
     <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div> 
+</div>
+
+<h2>Chat Demo (SignalR)</h2>
+<input id="userInput" type="text" placeholder="Name" />
+<input id="messageInput" type="text" placeholder="Nachricht" />
+<button onclick="sendMessage()">Senden</button>
+<ul id="messagesList"></ul>
+
+<h2>Steuerbare Box</h2>
+<div id="box" style="width:50px; height:50px; background-color:steelblue; position:absolute; top:100px; left:100px;"></div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+<script>
+    // Chat-Verbindung
+    const chatConnection = new signalR.HubConnectionBuilder().withUrl("/chathub").build();
+
+    chatConnection.on("ReceiveMessage", (user, message) => {
+        const li = document.createElement("li");
+        li.textContent = `${user}: ${message}`;
+        document.getElementById("messagesList").appendChild(li);
+    });
+
+    chatConnection.start().catch(err => console.error(err.toString()));
+
+    function sendMessage() {
+        const user = document.getElementById("userInput").value;
+        const message = document.getElementById("messageInput").value;
+        chatConnection.invoke("SendMessage", user, message)
+            .catch(err => console.error(err.toString()));
+        document.getElementById("messageInput").value = "";
+    }
+
+    // Box-Verbindung
+    const box = document.getElementById("box");
+    let topPos = 100;
+    let leftPos = 100;
+
+    const boxConnection = new signalR.HubConnectionBuilder().withUrl("/boxhub").build();
+
+    boxConnection.on("UpdatePosition", (top, left) => {
+        topPos = top;
+        leftPos = left;
+        box.style.top = topPos + "px";
+        box.style.left = leftPos + "px";
+    });
+
+    boxConnection.start().catch(err => console.error(err.toString()));
+
+    window.addEventListener("keydown", function (event) {
+        switch(event.key) {
+            case "ArrowUp":
+                boxConnection.invoke("MoveBox", "up");
+                break;
+            case "ArrowDown":
+                boxConnection.invoke("MoveBox", "down");
+                break;
+            case "ArrowLeft":
+                boxConnection.invoke("MoveBox", "left");
+                break;
+            case "ArrowRight":
+                boxConnection.invoke("MoveBox", "right");
+                break;
+            default:
+                return;
+        }
+        event.preventDefault();
+    });
+</script>
+}
